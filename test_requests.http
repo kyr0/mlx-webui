@@ -19,7 +19,7 @@ POST http://localhost:8000/v1/chat/completions
 Content-Type: application/json
 
 {
-  "model": "nightmedia/unsloth-Qwen3-VL-4B-Instruct-qx86x-hi-mlx",
+  "model": "kyr0/aidana-slm-mlx",
   "messages": [
     {
       "role": "system",
@@ -39,7 +39,7 @@ POST http://localhost:8000/v1/chat/completions
 Content-Type: application/json
 
 {
-  "model": "nightmedia/unsloth-Qwen3-VL-4B-Instruct-qx86x-hi-mlx",
+  "model": "kyr0/aidana-slm-mlx",
   "messages": [
     {
       "role": "user",

@@ -3,7 +3,7 @@ POST http://localhost:8000/v1/chat/completions
 Content-Type: application/json
 
 {
-  "model": "./quantized_model",
+  "model": "kyr0/aidana-slm-mlx",
   "messages": [
     {
       "role": "system",
@@ -23,7 +23,7 @@ POST http://localhost:8000/v1/chat/completions
 Content-Type: application/json
 
 {
-  "model": "./quantized_model",
+  "model": "kyr0/aidana-slm-mlx",
   "messages": [
     {
       "role": "system",
