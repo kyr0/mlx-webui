@@ -24,6 +24,11 @@ print(f"Loading model: {MODEL_PATH}")
 model, tokenizer = load(MODEL_PATH)
 print("Model loaded.")
 
+# Warmup
+print("Warming up model...")
+generate(model, tokenizer, prompt="Hello", max_tokens=1, verbose=False)
+print("Model warmed up.")
+
 class ChatMessage(BaseModel):
     role: str
     content: str
