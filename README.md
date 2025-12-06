@@ -30,4 +30,30 @@ python server.py
 
 The server will start at `http://0.0.0.0:8000`. Visit it with a web browser to see the chat interface. You can test it using the `test_requests.http` file or standard OpenAI client libraries.
 
+## Impressions
 
+### Setup
+
+Setup will take a while as it downloads the default SLM model (~2.5 GB).
+
+<img src="assets/install.png" />
+
+### API
+
+Calling the OpenAI-compatible API:
+
+<img src="assets/api_use-call.png" />
+
+Response (non-streaming):
+
+<img src="assets/api_use-response.png" />
+
+Console log:
+
+<img src="assets/api-use.png" />
+
+### Using the WebUI
+
+Visit [`http://0.0.0.0:8000`](http://0.0.0.0:8000) in your browser to see the WebUI.
+
+<img src="assets/web-ui.png" />
