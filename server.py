@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from mlx_lm import load, generate, stream_generate
 from mlx_lm.sample_utils import make_sampler, make_logits_processors
+from mlx_lm.models import cache as mlx_cache
 import uvicorn
 import time
 import uuid
@@ -23,6 +24,7 @@ MODEL_PATH = "kyr0/aidana-slm-mlx"
 print(f"Loading model: {MODEL_PATH}")
 model, tokenizer = load(MODEL_PATH)
 print("Model loaded.")
+
 
 # Warmup
 print("Warming up model...")
@@ -71,10 +73,10 @@ async def chat_completions(request: ChatCompletionRequest):
         # Fallback if no chat template (basic concatenation)
         prompt = "\n".join([f"{m['role']}: {m['content']}" for m in messages]) + "\nassistant:"
 
-    # Generate response
-    # mlx_lm.generate(model, tokenizer, prompt, max_tokens, verbose, ...)
-    # We map request params to generate args where possible
-    # Create sampler
+    # Tokenize the prompt first to handle caching
+    prompt_tokens = tokenizer.encode(prompt, add_special_tokens=True)
+    prompt_tokens_list = prompt_tokens
+
     # Create sampler
     sampler = make_sampler(request.temperature, request.top_p)
     
@@ -88,21 +90,10 @@ async def chat_completions(request: ChatCompletionRequest):
             request_id = f"chatcmpl-{uuid.uuid4()}"
             created = int(time.time())
             
-            for response in generate(
-                model,
-                tokenizer,
-                prompt=prompt,
-                max_tokens=request.max_tokens if request.max_tokens else 512,
-                sampler=sampler,
-                logits_processors=logits_processors,
-                verbose=False # Don't log to console during streaming
-            ):
-                # mlx_lm.generate returns a string when not streaming, but we want stream_generate
-                # Wait, mlx_lm.generate calls stream_generate internally and yields if we iterate?
-                # No, mlx_lm.generate returns a string. We need to call stream_generate directly.
-                pass
             
-            # Correct approach: call stream_generate directly
+            # We need to capture the generated tokens to update previous_tokens
+            generated_tokens = []
+            
             from mlx_lm import stream_generate
             
             for response in stream_generate(
@@ -113,6 +104,7 @@ async def chat_completions(request: ChatCompletionRequest):
                 sampler=sampler,
                 logits_processors=logits_processors
             ):
+                generated_tokens.append(response.token)
                 chunk = ChatCompletionResponse(
                     id=request_id,
                     object="chat.completion.chunk",
@@ -130,18 +122,24 @@ async def chat_completions(request: ChatCompletionRequest):
                 yield f"data: {chunk.json()}\n\n"
             
             yield "data: [DONE]\n\n"
-
+            
         return StreamingResponse(event_generator(), media_type="text/event-stream")
+
 
     text = generate(
         model, 
         tokenizer, 
         prompt=prompt, 
-        verbose=True, # Log to console
+        verbose=True, 
         max_tokens=request.max_tokens if request.max_tokens else 512,
         sampler=sampler,
         logits_processors=logits_processors
     )
+    
+    if text is None:
+        text = ""
+    
+    generated_tokens = tokenizer.encode(text, add_special_tokens=False)
 
     return ChatCompletionResponse(
         id=f"chatcmpl-{uuid.uuid4()}",
@@ -156,9 +154,9 @@ async def chat_completions(request: ChatCompletionRequest):
             )
         ],
         usage={
-            "prompt_tokens": 0, # Not calculating exact tokens for speed
-            "completion_tokens": 0,
-            "total_tokens": 0
+            "prompt_tokens": len(prompt_tokens_list),
+            "completion_tokens": len(generated_tokens),
+            "total_tokens": len(prompt_tokens_list) + len(generated_tokens)
         }
     )
 
