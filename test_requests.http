@@ -1,0 +1,50 @@
+### Basic Chat Completion
+POST http://localhost:8000/v1/chat/completions
+Content-Type: application/json
+
+{
+  "model": "nightmedia/unsloth-Qwen3-VL-4B-Instruct-qx86x-hi-mlx",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello, how are you? Ich heiße Aron!"
+    }
+  ],
+  "temperature": 0.7,
+  "max_tokens": 100
+}
+
+### Chat Completion with Parameters
+POST http://localhost:8000/v1/chat/completions
+Content-Type: application/json
+
+{
+  "model": "nightmedia/unsloth-Qwen3-VL-4B-Instruct-qx86x-hi-mlx",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant."
+    },
+    {
+      "role": "user",
+      "content": "Count to 5."
+    }
+  ],
+  "temperature": 0.7,
+  "max_tokens": 100
+}
+
+### Chat Completion (Creative)
+POST http://localhost:8000/v1/chat/completions
+Content-Type: application/json
+
+{
+  "model": "nightmedia/unsloth-Qwen3-VL-4B-Instruct-qx86x-hi-mlx",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Write a haiku about coding."
+    }
+  ],
+  "temperature": 0.9
+}

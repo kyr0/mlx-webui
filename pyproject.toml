@@ -1,0 +1,7 @@
+[project]
+name = "mlx-webui"
+version = "0.1.0"
+description = "MLX-WebUI is a tiny inference server and WebUI for MLX-based models."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []

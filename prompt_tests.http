@@ -1,0 +1,39 @@
+### Tool Decider Test
+POST http://localhost:8000/v1/chat/completions
+Content-Type: application/json
+
+{
+  "model": "./quantized_model",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Based on CONTEXT (user request), choose to call browserTools or tools if applicable. browserTools are: \"google\" (knowledge questions searchable by tags), \"perplexity\" (knowledge questions in natural language), \"weather\". tools are: \"calculate\". MUST return JSON only. \"query\" should be input, suited for the tool. Example: { browserTools: [], tools: [\"calculate\"], query: \"sqrt(1)\" } or { browserTools: [\"google\"], query: \"Last pharao's name\" }"
+    },
+    {
+      "role": "user",
+      "content": "Calculate the square root of 144."
+    }
+  ],
+  "temperature": 0.0,
+  "stream": false
+}
+
+### TTS Assistant Test
+POST http://localhost:8000/v1/chat/completions
+Content-Type: application/json
+
+{
+  "model": "./quantized_model",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Terse TTS assistant. Create a single, short read-out message for the CONTEXT given. TTS will read it out 1:1. No additional output! Impersonate a radio moderator."
+    },
+    {
+      "role": "user",
+      "content": "The tool result for sqrt(144) is 12."
+    }
+  ],
+  "temperature": 0.7,
+  "stream": false
+}
