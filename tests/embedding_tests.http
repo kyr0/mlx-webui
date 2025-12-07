@@ -1,0 +1,28 @@
+### Single Embedding
+POST http://localhost:8000/v1/embeddings
+Content-Type: application/json
+
+{
+    "input": "The quick brown fox jumps over the lazy dog",
+    "model": "mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ"
+}
+
+### Batch Embeddings
+POST http://localhost:8000/v1/embeddings
+Content-Type: application/json
+
+{
+    "input": [
+        "Hello world",
+        "Machine learning is fascinating"
+    ],
+    "model": "mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ"
+}
+
+### Default Model
+POST http://localhost:8000/v1/embeddings
+Content-Type: application/json
+
+{
+    "input": "Testing default model"
+}

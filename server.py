@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from mlx_lm import load, generate, stream_generate
 from mlx_lm.sample_utils import make_sampler, make_logits_processors
 from mlx_lm.models import cache as mlx_cache
+import mlx.core as mx
 import uvicorn
 import time
 import uuid
@@ -21,15 +22,26 @@ async def read_index():
 
 # Load model globally
 MODEL_PATH = "kyr0/aidana-slm-mlx"
-print(f"Loading model: {MODEL_PATH}")
+print(f"Loading chat model: {MODEL_PATH}")
 model, tokenizer = load(MODEL_PATH)
-print("Model loaded.")
+print("Chat model loaded.")
+
+EMBEDDING_MODEL_PATH = "mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ"
+print(f"Loading embedding model: {EMBEDDING_MODEL_PATH}")
+emb_model, emb_tokenizer = load(EMBEDDING_MODEL_PATH)
+print("Embedding model loaded.")
 
 
 # Warmup
-print("Warming up model...")
+print("Warming up chat model...")
 generate(model, tokenizer, prompt="Hello", max_tokens=1, verbose=False)
-print("Model warmed up.")
+print("Chat model warmed up.")
+
+print("Warming up embedding model...")
+# Run a dummy forward pass
+dummy_input = mx.array([emb_tokenizer.encode("Hello")])
+emb_model.model(dummy_input)
+print("Embedding model warmed up.")
 
 class ChatMessage(BaseModel):
     role: str
@@ -56,6 +68,21 @@ class ChatCompletionResponse(BaseModel):
     model: str
     choices: List[ChatCompletionResponseChoice]
     usage: Optional[dict] = None
+
+class EmbeddingRequest(BaseModel):
+    input: str | List[str]
+    model: Optional[str] = "text-embedding-default"
+
+class EmbeddingData(BaseModel):
+    object: str = "embedding"
+    embedding: List[float]
+    index: int
+
+class EmbeddingResponse(BaseModel):
+    object: str = "list"
+    data: List[EmbeddingData]
+    model: str
+    usage: dict
 
 @app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
 async def chat_completions(request: ChatCompletionRequest):
@@ -157,6 +184,51 @@ async def chat_completions(request: ChatCompletionRequest):
             "prompt_tokens": len(prompt_tokens_list),
             "completion_tokens": len(generated_tokens),
             "total_tokens": len(prompt_tokens_list) + len(generated_tokens)
+        }
+    )
+
+@app.post("/v1/embeddings", response_model=EmbeddingResponse)
+async def embeddings(request: EmbeddingRequest):
+    inputs = request.input
+    if isinstance(inputs, str):
+        inputs = [inputs]
+    
+    data = []
+    total_tokens = 0
+    
+    for i, text in enumerate(inputs):
+        tokens = emb_tokenizer.encode(text)
+        total_tokens += len(tokens)
+        input_ids = mx.array([tokens])
+        
+        # Forward pass through the backbone to get hidden states
+        # Qwen3Model returns hidden states directly
+        outputs = emb_model.model(input_ids)
+        
+        # Extract last hidden state (last token)
+        # Shape: (1, seq_len, hidden_dim)
+        # We want the last token: (1, 1, hidden_dim) -> (hidden_dim,)
+        last_hidden_state = outputs[:, -1, :]
+        
+        # Normalize (L2)
+        # norm = sqrt(sum(x^2))
+        norm = mx.linalg.norm(last_hidden_state, ord=2, axis=-1, keepdims=True)
+        normalized_embedding = last_hidden_state / norm
+        
+        # Convert to list
+        embedding_list = normalized_embedding[0].tolist()
+        
+        data.append(EmbeddingData(
+            embedding=embedding_list,
+            index=i
+        ))
+        
+    return EmbeddingResponse(
+        data=data,
+        model=request.model or "text-embedding-default",
+        usage={
+            "prompt_tokens": total_tokens,
+            "total_tokens": total_tokens
         }
     )
 
